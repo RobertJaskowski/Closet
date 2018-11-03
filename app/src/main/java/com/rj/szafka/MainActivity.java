@@ -28,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView kl1, kl2, kl3, kl4;
 
     FirebaseDatabase database = FirebaseDatabase.getInstance();
+    final DatabaseReference key0 = database.getReference("key0");
     final DatabaseReference key1 = database.getReference("key1");
     final DatabaseReference key2 = database.getReference("key2");
     final DatabaseReference key3 = database.getReference("key3");
@@ -56,12 +57,13 @@ public class MainActivity extends AppCompatActivity {
                 Snackbar.make(view, "Otwieram", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
                 Key key = new Key();
-                key.nr = 1;
+                key.nr = 0;
                 key.used = false;
-                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy_HH:mm");
-                key.when = simpleDateFormat.format(new Date());
+                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd-MM-yyyy--HH:mm:ss");
+                String date = simpleDateFormat.format(new Date());
+                key.when = date;
                 key.model = Build.MODEL;
-                key1.setValue(key);
+                key0.child(date).setValue(key);
             }
         });
 
