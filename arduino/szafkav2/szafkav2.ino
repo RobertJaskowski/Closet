@@ -35,7 +35,7 @@
 /* Comment this out to disable prints and save space */
 #define BLYNK_PRINT Serial
 
-
+#include <stdlib.h>
 #include <ESP8266_Lib.h>
 #include <BlynkSimpleShieldEsp8266.h>
 
@@ -70,7 +70,12 @@ BlynkTimer timer;
 //before starting need to define what pins for :
 //ss_pin
 //rst_pin
-//
+//card number in for loop need to be correct when adding another one
+//card keys 
+//check if pin 13  12 is good for rfid reader  >> pin 0 opens door for few sec
+//servo is attached in setup
+//locked starting position
+//writing from variable to blynk.virtualWrite(VARIABLE, int) doesnt work need to do manually -||-(V1,int)
 
 #include <Keypad.h>
 #include <Servo.h>
@@ -82,17 +87,34 @@ Servo ServoMotor;
 #include <RFID.h>
 
 /* Define the DIO used for the SDA (SS) and RST (reset) pins. */
-#define SDA_DIO1 9
-#define RESET_DIO1 8
+#define SDA_DIO0 3
+#define RESET_DIO0 2
 
-#define SDA_DIO2 11
-#define RESET_DIO2 10
+#define SDA_DIO1 5    //9 this is old was working
+#define RESET_DIO1 4  //8
+
+#define SDA_DIO2 7
+#define RESET_DIO2 6
+
+#define SDA_DIO3 9
+#define RESET_DIO3 8
+
+#define SDA_DIO4 11
+#define RESET_DIO4 10
 /* Create an instance of the RFID library */
+RFID RC0(SDA_DIO0, RESET_DIO0);
 RFID RC1(SDA_DIO1, RESET_DIO1); 
 RFID RC2(SDA_DIO2, RESET_DIO2);
+RFID RC3(SDA_DIO3, RESET_DIO3);
+RFID RC4(SDA_DIO4, RESET_DIO4);
 
+
+//String pinStr;
+//int pinNumber;
 String KF = "Free";
 String KT = "Taken";
+
+
 
 char* password = "123"; 
 int position = 0;
@@ -116,6 +138,12 @@ Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS
 
 
 
+////testing 
+
+RFID rfids[] = {RC0,RC1,RC2,RC3,RC4};
+String doorKeys[] = {"ABC","ASD"};
+String rfidKeys[] = {"ASDDSA","DKFNA","NFBASBD","BNSDABA"}; //4 klucze po kolei
+
 // This function sends Arduino's up time every second to Virtual Pin (5).
 // In the app, Widget's reading frequency should be set to PUSH. This means
 // that you define how often to send data to Blynk App.
@@ -123,7 +151,7 @@ void myTimerEvent()
 {
   // You can send any value at any time.
   // Please don't send more that 10 values per second.
-  Blynk.virtualWrite(V5, millis() / 1000);
+  //Blynk.virtualWrite(V5, millis() / 1000);
 }
 
 void setup()
@@ -132,9 +160,12 @@ void setup()
   Serial.begin(9600);
   SPI.begin();
   
+  RC0.init();
   RC1.init();
   RC2.init();
-
+  RC3.init();
+  RC4.init();
+  
   //ServoMotor.attach(11);
   //LockedPosition(true);
 
@@ -159,6 +190,13 @@ void setup()
   //Blynk.virtualWrite(V4, 60);
 
 
+
+//testing
+
+      Blynk.virtualWrite(V1 , 1000);
+      Blynk.virtualWrite(V2 , 1000);
+      Blynk.virtualWrite(V3 , 1000);
+      Blynk.virtualWrite(V4 , 1000);
   
  
 
@@ -166,45 +204,100 @@ void setup()
   Serial.println("Approximate your card to the reader...");
 }
 
-RFID[] 
+
 
 void loop()
 {
   Blynk.run();
   timer.run(); // Initiates BlynkTimer
 
+  Serial.println("loop");
+  //Blynk.virtualWrite(V3, 255); this is tested , works
+  
   //rfid
 
-  
-
-  if (RC1.isCard()){
+  if (RC0.isCard()){
     /* If so then get its serial number */
-    RC1.readCardSerial();
+    RC0.readCardSerial();
     String content = "";
     Serial.println("Card detected:");
-    for(int i=0;i<5;i++)
-    {
-    Serial.print(RC1.serNum[i],DEC);
+    for(int i=0;i<5;i++){
+    Serial.print(RC0.serNum[i],DEC);
     //content.concat(String(RC1.serNum[i],DEC));
     //Serial.print(RC1.serNum[i],HEX); //to print card detail in Hexa Decimal format
     }
-
+    
     content.toUpperCase();
-    if(content.substring(1) == "ASD ASD"){
-      LockedPosition(0);
-      writeToBlynk(V1,KT);
+    for(String key : doorKeys){
+      if(content == key){
+        LockedPosition(0);
+        return;
+      }else{
+        //LockedPosition(1);  
+      }
+    }
+  }
+  
+  delay(2000);  //check for door key every sec , check for all keys every 2 sec
+
+  
+
+  for(int r=1; r<=4;r++){
+    
+    String pinStr = "V";
+    pinStr.concat(r);
+    //int pinNumber = pinStr.toInt();
+
+    
+    if(rfids[r].isCard()){
+        rfids[r].readCardSerial();
+        String content = "";
+        Serial.println("Card detected:");
+        
+        for(int i=0;i<5;i++){
+        Serial.print(RC1.serNum[i],DEC);
+        //content.concat(String(RC1.serNum[i],DEC));
+        //Serial.print(RC1.serNum[i],HEX); //to print card detail in Hexa Decimal format
+        }
+        content.toUpperCase();
+
+        
+        
+        if(validCard){
+          LockedPosition(0);
+          //Blynk.virtualWrite(pinNumber, 255); //do this
+        }else{
+          //LockedPosition(1);  
+        }
     }else{
-      //LockedPosition(1);  
+      Serial.println("else"+ pinStr);
+      delay(1000);
+      lightLed(pinStr,0);
     }
   }
 
-  //rfid 2
+  
+
   //Blynk.virtualWrite(V1, test);
   //delay(2000);
 }
 
-void writeToBlynk(int pin,String value){
-  Blynk.virtualWrite(pin, value);
+void lightLed(String value, int turned){
+
+  if(value == "V1"){
+    Blynk.virtualWrite(V1, turned);
+  }else if(value == "V2"){
+    Blynk.virtualWrite(V2, turned);
+  }else if(value == "V3"){
+    Blynk.virtualWrite(V3, turned);
+  }else if(value == "V4"){
+    Blynk.virtualWrite(V4, turned);
+  }
+
+}
+
+bool validCard(String key){
+  
 }
 
 
