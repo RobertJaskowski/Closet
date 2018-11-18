@@ -141,8 +141,9 @@ Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS
 ////testing 
 
 RFID rfids[] = {RC0,RC1,RC2,RC3,RC4};
-String doorKeys[] = {"ABC","ASD"};
-String rfidKeys[] = {"ASDDSA","DKFNA","NFBASBD","BNSDABA"}; //4 klucze po kolei
+String doorKeys[] = {"SPECIAL","ASD","DKFNA","DKFNA","DKFNA"}; //when placing rfid runs scan through those
+String rfidKeys[] = {"ASDDSA","DKFNA","NFBASBD","BNSDABA"}; //4 klucze po kolei 
+//compares position of rfid to position key // if every key can open door , add these to doorKeys
 
 // This function sends Arduino's up time every second to Virtual Pin (5).
 // In the app, Widget's reading frequency should be set to PUSH. This means
@@ -256,14 +257,14 @@ void loop()
         
         for(int i=0;i<5;i++){
         Serial.print(RC1.serNum[i],DEC);
-        //content.concat(String(RC1.serNum[i],DEC));
+        content.concat(String(RC1.serNum[i],DEC));
         //Serial.print(RC1.serNum[i],HEX); //to print card detail in Hexa Decimal format
         }
         content.toUpperCase();
 
         
         
-        if(validCard){
+        if(validCard(content, r)){
           LockedPosition(0);
           //Blynk.virtualWrite(pinNumber, 255); //do this
         }else{
@@ -272,7 +273,7 @@ void loop()
     }else{
       Serial.println("else"+ pinStr);
       delay(1000);
-      lightLed(pinStr,0);
+      lightVLed(pinStr,0);
     }
   }
 
@@ -282,7 +283,7 @@ void loop()
   //delay(2000);
 }
 
-void lightLed(String value, int turned){
+void lightVLed(String value, int turned){
 
   if(value == "V1"){
     Blynk.virtualWrite(V1, turned);
@@ -296,8 +297,12 @@ void lightLed(String value, int turned){
 
 }
 
-bool validCard(String key){
-  
+bool validCard(String key, int rfid){
+  if(key == rfidKeys[rfid-1]){
+    return true;
+  }else{
+    return false;
+  }
 }
 
 
