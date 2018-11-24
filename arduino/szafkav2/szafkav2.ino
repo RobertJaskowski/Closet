@@ -96,8 +96,8 @@ Servo ServoMotor;
 #define SDA_DIO2 7
 #define RESET_DIO2 6
 
-#define SDA_DIO3 9
-#define RESET_DIO3 8
+#define SDA_DIO3 13
+#define RESET_DIO3 14
 
 #define SDA_DIO4 11
 #define RESET_DIO4 10
@@ -141,9 +141,12 @@ Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS
 ////testing 
 
 RFID rfids[] = {RC0,RC1,RC2,RC3,RC4};
-String doorKeys[] = {"SPECIAL","ASD","DKFNA","DKFNA","DKFNA"}; //when placing rfid runs scan through those
-String rfidKeys[] = {"ASDDSA","DKFNA","NFBASBD","BNSDABA"}; //4 klucze po kolei 
+String doorKeys[] = {"SPECIAL","1052331032229","52127221233127","10519106218","553024537249"}; //when placing rfid runs scan through those
+String rfidKeys[] = {"000000","1052331032229","52127221233127","10519106218","553024537249"}; //4 klucze po kolei 
 //compares position of rfid to position key // if every key can open door , add these to doorKeys
+
+//do blynka jest wysyłane tylko wtedy gdy timer klucza jest na 5, czyli 5 razy nie znalazło karty
+int keyTimers[] = {0,0,0,0,0};
 
 // This function sends Arduino's up time every second to Virtual Pin (5).
 // In the app, Widget's reading frequency should be set to PUSH. This means
@@ -160,16 +163,14 @@ void setup()
   // Debug console
   Serial.begin(9600);
   SPI.begin();
-  
-  RC0.init();
-  RC1.init();
-  RC2.init();
-  RC3.init();
-  RC4.init();
+
+  for(RFID r: rfids){
+    r.init();
+  }
+
   
   //ServoMotor.attach(11);
-  //LockedPosition(true);
-
+  openDoor(0);
   
   
 
@@ -217,24 +218,28 @@ void loop()
   
   //rfid
 
-  if (RC0.isCard()){
+  if (rfids[0].isCard()){
+    Serial.println("rc0 is on");
     /* If so then get its serial number */
-    RC0.readCardSerial();
+    rfids[0].readCardSerial();
     String content = "";
-    Serial.println("Card detected:");
+    Serial.println("Door Card detected:");
     for(int i=0;i<5;i++){
-    Serial.print(RC0.serNum[i],DEC);
-    //content.concat(String(RC1.serNum[i],DEC));
+    Serial.print(rfids[0].serNum[i],DEC);
+    content.concat(String(rfids[0].serNum[i],DEC));
     //Serial.print(RC1.serNum[i],HEX); //to print card detail in Hexa Decimal format
     }
-    
+
+    Serial.println();
     content.toUpperCase();
+    Serial.println("content: " +content);
     for(String key : doorKeys){
       if(content == key){
-        LockedPosition(0);
+        Serial.println("otwieram gl drzwi");
+        openDoor(1);
         return;
       }else{
-        //LockedPosition(1);  
+        //openDoor(0);  
       }
     }
   }
@@ -243,21 +248,25 @@ void loop()
 
   
 
-  for(int r=1; r<=4;r++){
+  for(int r=0; r<=4;r++){
     
     String pinStr = "V";
     pinStr.concat(r);
     //int pinNumber = pinStr.toInt();
 
+        Serial.println();
+        Serial.println("searching:");
+        
     
     if(rfids[r].isCard()){
+
         rfids[r].readCardSerial();
         String content = "";
-        Serial.println("Card detected:");
+        Serial.print("Key Card detected:");
         
         for(int i=0;i<5;i++){
-        Serial.print(RC1.serNum[i],DEC);
-        content.concat(String(RC1.serNum[i],DEC));
+        Serial.print(rfids[r].serNum[i],DEC);
+        content.concat(String(rfids[r].serNum[i],DEC));
         //Serial.print(RC1.serNum[i],HEX); //to print card detail in Hexa Decimal format
         }
         content.toUpperCase();
@@ -265,16 +274,28 @@ void loop()
         
         
         if(validCard(content, r)){
-          LockedPosition(0);
-          //Blynk.virtualWrite(pinNumber, 255); //do this
+          openDoor(1);
+          lightVLed(pinStr,1000);
+          keyTimers[r]=0;
         }else{
-          //LockedPosition(1);  
+          Serial.println("else: "+ pinStr);
+          delay(1000);
+          //lightVLed(pinStr,0);//przeniesione nizej
         }
-    }else{
-      Serial.println("else"+ pinStr);
-      delay(1000);
-      lightVLed(pinStr,0);
-    }
+ 
+     }else{//w przypadku gdy w ogóle nie znaleziono karty na danej pozycji sprawdz 'key counter timers' i jesli ==5 wyslij do blynk
+        Serial.println();
+        Serial.println("nie znaleniono karty na pozycji: " + String(r));
+        Serial.println("key timer nr: " + String(r) + " timer: " + String(keyTimers[r]));
+        if(keyTimers[r]==5){
+          lightVLed(pinStr, 0);
+          keyTimers[r]=0;
+        }else{
+          keyTimers[r]++;
+        }
+        
+     }
+  
   }
 
   
@@ -297,25 +318,29 @@ void lightVLed(String value, int turned){
 
 }
 
-bool validCard(String key, int rfid){
-  if(key == rfidKeys[rfid-1]){
+boolean validCard(String key, int rfid){
+  Serial.println();
+  Serial.println("klucz: " + key + "key tab: " + rfidKeys[rfid] + " rfid order: " + String(rfid));
+  if(key == rfidKeys[rfid]){//rfid keys starts with 0
+    Serial.println("valid key");
     return true;
   }else{
+    Serial.println("invalid key");
     return false;
   }
 }
 
 
-void LockedPosition(int locked){
-  if (locked)
-  {
-    //close
-      ServoMotor.write(11);
-
+void openDoor(int opens){
+  if (opens){
+    //open
+     // ServoMotor.write(11);
+      Serial.println("opening");
       
   }else{
-    //open
+    //close
     
+      Serial.println("closing");
 //    digitalWrite(12, HIGH);
 //    delay(1000); 
 //    digitalWrite(12, LOW);
