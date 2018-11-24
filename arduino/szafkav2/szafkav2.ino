@@ -141,7 +141,7 @@ Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS
 ////testing 
 
 RFID rfids[] = {RC0,RC1,RC2,RC3,RC4};
-String doorKeys[] = {"SPECIAL","1052331032229","52127221233127","10519106218","553024537249"}; //when placing rfid runs scan through those
+String doorKeys[] = {"427917616197","1052331032229","52127221233127","10519106218","553024537249"}; //when placing rfid runs scan through those
 String rfidKeys[] = {"000000","1052331032229","52127221233127","10519106218","553024537249"}; //4 klucze po kolei 
 //compares position of rfid to position key // if every key can open door , add these to doorKeys
 
@@ -248,7 +248,7 @@ void loop()
 
   
 
-  for(int r=0; r<=4;r++){
+  for(int r=1; r<=4;r++){
     
     String pinStr = "V";
     pinStr.concat(r);
@@ -320,7 +320,7 @@ void lightVLed(String value, int turned){
 
 boolean validCard(String key, int rfid){
   Serial.println();
-  Serial.println("klucz: " + key + "key tab: " + rfidKeys[rfid] + " rfid order: " + String(rfid));
+  Serial.println("klucz: " + key + " key tab: " + rfidKeys[rfid] + " rfid order: " + String(rfid));
   if(key == rfidKeys[rfid]){//rfid keys starts with 0
     Serial.println("valid key");
     return true;
