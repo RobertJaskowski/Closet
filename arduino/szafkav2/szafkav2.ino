@@ -168,6 +168,8 @@ void setup()
     r.init();
   }
 
+
+ 
   
   //ServoMotor.attach(11);
   openDoor(0);
@@ -336,15 +338,17 @@ void openDoor(int opens){
     //open
      // ServoMotor.write(11);
       Serial.println("opening");
+
+      
+    digitalWrite(40, HIGH);
+    delay(1000); 
+    digitalWrite(40, LOW);
+    delay(1000);
       
   }else{
     //close
     
       Serial.println("closing");
-//    digitalWrite(12, HIGH);
-//    delay(1000); 
-//    digitalWrite(12, LOW);
-//    delay(1000);
    // ServoMotor.write(90);
   }
 }
